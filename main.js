@@ -9,6 +9,7 @@ const REFRESH_INTERVAL = 1000 * 60;
 const SEEN_POSTS_SIZE = 1000;
 const API_ENDPOINT_PATTERN = 'https://www.reddit.com/r/$1/new.json';
 const NOTIFICATION_SOUND_PATH = './notify.mp3';
+const IMAGE_WIDTH = '400px';
 
 var seenPosts = [];
 var player = playSound({});
@@ -41,30 +42,32 @@ function processRedditJson(json) {
   json.data.children.reverse().forEach((post) => {
     if (!seenPosts.includes(post.data.id)) {
       // Normalize data
-      if (post.data.thumbnail.slice(0, 4) != 'http') {
-        post.data.thumbnail = null;
-      }
+      post.data.images = post.data.preview ? post.data.preview.images : [];
 
       newPostIds.push(post.data.id);
       newPosts[post.data.id] = post.data;
 
-      if (post.data.thumbnail) {
-        promises.push(fetchImage(post.data.thumbnail));
-      }
+      post.data.images.forEach((image) => {
+        promises.push(fetchImage(image.source.url));
+      })
     }
   });
 
-  q.all(promises).then((fetchedThumbnails) => {
-    var thumbnails = {};
+  q.all(promises).then((fetchedImages) => {
+    var images = {};
 
-    fetchedThumbnails.forEach((fetchedThumbnail) => {
-      thumbnails[fetchedThumbnail.url] = fetchedThumbnail.code;
+    fetchedImages.forEach((fetchedImage) => {
+      images[fetchedImage.url] = fetchedImage.code;
     });
 
     newPostIds.forEach((postId) => {
-      if (newPosts[postId].thumbnail) {
-        newPosts[postId].thumbnail = thumbnails[newPosts[postId].thumbnail];
-      }
+      var newImages = [];
+
+      newPosts[postId].images.forEach((image) => {
+        newImages.push(images[image.source.url]);
+      });
+
+      newPosts[postId].images = newImages;
       printPost(newPosts[postId]);
     });
 
@@ -98,15 +101,14 @@ function printPost(post) {
     post.link_flair_text ? ' ' + chalk.cyan(post.link_flair_text) : ''
   ].join(' '));
   console.log(chalk.dim(post.url));
-  post.thumbnail && printImage(post.thumbnail);
+  post.images.forEach(printImage);
   console.log(_.unescape(post.selftext));
   console.log();
 }
 
 function printImage(code) {
   process.stdout.write('\033]');
-  process.stdout.write('1337;File=');
-  process.stdout.write(';inline=1:');
+  process.stdout.write(`1337;File=;width=${IMAGE_WIDTH};inline=1:`);
   process.stdout.write(code);
   process.stdout.write('\u0007');
   process.stdout.write('\n');
