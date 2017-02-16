@@ -30,6 +30,7 @@ function checkRedditForUpdates() {
       processRedditJson(JSON.parse(body.toString()));
     } catch(e) {
       printError(e.message);
+      console.log(chalk.yellow('Don\'t panic. Will try again.'));
       return;
     }
   });
