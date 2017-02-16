@@ -8,6 +8,7 @@ var q = require('q');
 const REFRESH_INTERVAL = 1000 * 60;
 const SEEN_POSTS_SIZE = 1000;
 const API_ENDPOINT_PATTERN = 'https://www.reddit.com/r/$1/new.json';
+const PERMALINK_BASE = 'https://www.reddit.com';
 const NOTIFICATION_SOUND_PATH = './notify.mp3';
 const MAX_IMAGE_WIDTH = 400;
 
@@ -103,7 +104,14 @@ function printPost(post) {
     chalk.magenta(dateformat(post.created_utc * 1000, 'h:MM:ss TT')),
     post.link_flair_text ? ' ' + chalk.cyan(post.link_flair_text) : ''
   ].join(' '));
-  console.log(chalk.dim(post.url));
+  console.log([
+    chalk.yellow('Comments:'),
+    chalk.dim(PERMALINK_BASE + post.permalink)
+  ].join(' '));
+  post.url.includes(post.permalink) ||   console.log([
+      chalk.yellow('Link:'),
+      chalk.dim(post.url)
+    ].join(' '));
   post.images.forEach(printImage);
   console.log(_.unescape(post.selftext));
   console.log();
