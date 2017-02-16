@@ -9,7 +9,7 @@ const REFRESH_INTERVAL = 1000 * 60;
 const SEEN_POSTS_SIZE = 1000;
 const API_ENDPOINT_PATTERN = 'https://www.reddit.com/r/$1/new.json';
 const NOTIFICATION_SOUND_PATH = './notify.mp3';
-const IMAGE_WIDTH = '400px';
+const MAX_IMAGE_WIDTH = 400;
 
 var seenPosts = [];
 var player = playSound({});
@@ -57,14 +57,17 @@ function processRedditJson(json) {
     var images = {};
 
     fetchedImages.forEach((fetchedImage) => {
-      images[fetchedImage.url] = fetchedImage.code;
+      images[fetchedImage.url] = fetchedImage.data;
     });
 
     newPostIds.forEach((postId) => {
       var newImages = [];
 
       newPosts[postId].images.forEach((image) => {
-        newImages.push(images[image.source.url]);
+        newImages.push({
+          width: image.source.width,
+          data: images[image.source.url]
+        });
       });
 
       newPosts[postId].images = newImages;
@@ -87,7 +90,7 @@ function fetchImage(url) {
   fetch.fetchUrl(url, (error, meta, body) => {
     deferred.resolve({
       url: url,
-      code: body.toString('base64')
+      data: body.toString('base64')
     });
   });
 
@@ -106,10 +109,12 @@ function printPost(post) {
   console.log();
 }
 
-function printImage(code) {
+function printImage(image) {
+  var width = Math.min(image.width, MAX_IMAGE_WIDTH);
+
   process.stdout.write('\033]');
-  process.stdout.write(`1337;File=;width=${IMAGE_WIDTH};inline=1:`);
-  process.stdout.write(code);
+  process.stdout.write(`1337;File=;width=${width}px;inline=1:`);
+  process.stdout.write(image.data);
   process.stdout.write('\u0007');
   process.stdout.write('\n');
 }
