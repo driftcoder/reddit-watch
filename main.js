@@ -1,9 +1,9 @@
 var _ = require('lodash');
-var chalk = require('chalk');
 var dateformat = require('dateformat');
 var fetch = require('fetch');
 var playSound = require('play-sound');
 var q = require('q');
+var terminalKit = require( 'terminal-kit' );
 
 const REFRESH_INTERVAL = 1000 * 60;
 const SEEN_POSTS_SIZE = 1000;
@@ -15,6 +15,7 @@ const MAX_IMAGE_WIDTH = 400;
 var seenPosts = [];
 var player = playSound({});
 var reddit = process.argv[2];
+var terminal = terminalKit.terminal;
 
 if (!reddit) {
   printError('You did not specify the subreddit name.');
@@ -30,7 +31,7 @@ function checkRedditForUpdates() {
       processRedditJson(JSON.parse(body.toString()));
     } catch(e) {
       printError(e.message);
-      console.log(chalk.yellow('Don\'t panic. Will try again.'));
+      terminal.yellow('Don\'t panic. Will try again.' + '\n');
       return;
     }
   });
@@ -100,37 +101,32 @@ function fetchImage(url) {
 }
 
 function printPost(post) {
-  console.log(chalk.bold.green(_.unescape(post.title)));
-  console.log([
-    chalk.magenta(dateformat(post.created_utc * 1000, 'h:MM:ss TT')),
-    post.link_flair_text ? ' ' + chalk.cyan(post.link_flair_text) : ''
-  ].join(' '));
-  console.log([
-    chalk.yellow('Comments:'),
-    chalk.dim(PERMALINK_BASE + post.permalink)
-  ].join(' '));
-  post.url.includes(post.permalink) ||   console.log([
-      chalk.yellow('Link:'),
-      chalk.dim(post.url)
-    ].join(' '));
+  terminal.bold.green(_.unescape(post.title) + '\n');
+  terminal.magenta(dateformat(post.created_utc * 1000, 'h:MM:ss TT'));
+  post.link_flair_text && terminal.cyan(' ' + post.link_flair_text);
+  terminal('\n');
+  terminal.yellow('Comments: ');
+  terminal.dim(PERMALINK_BASE + post.permalink + '\n');
+
+  if (!post.url.includes(post.permalink)) {
+    terminal.yellow('Link: ');
+    terminal.dim(post.url + '\n');
+  }
+
   post.images.forEach(printImage);
-  console.log(_.unescape(post.selftext));
-  console.log();
+  terminal(_.unescape(post.selftext) + '\n\n');
 }
 
 function printImage(image) {
   var width = Math.min(image.width, MAX_IMAGE_WIDTH);
 
-  process.stdout.write('\033]');
-  process.stdout.write(`1337;File=;width=${width}px;inline=1:`);
-  process.stdout.write(image.data);
-  process.stdout.write('\u0007');
-  process.stdout.write('\n');
+  terminal('\033]');
+  terminal(`1337;File=;width=${width}px;inline=1:`);
+  terminal(image.data);
+  terminal('\u0007\n');
 }
 
 function printError(message) {
-  console.log([
-    chalk.bold.red('Error:'),
-    message,
-  ].join(' '));
+  terminal.bold.red('Error: ');
+  terminal(message + '\n');
 }
