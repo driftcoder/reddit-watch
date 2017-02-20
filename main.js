@@ -19,6 +19,7 @@ var reddit = process.argv[2];
 var terminal = terminalKit.terminal;
 
 terminal.windowTitle(APP_NAME);
+terminal.hideCursor();
 
 if (!reddit) {
   printError('You did not specify the subreddit name.');
@@ -31,7 +32,7 @@ setInterval(() => checkRedditForUpdates(), REFRESH_INTERVAL);
 function checkRedditForUpdates() {
   fetch.fetchUrl(reddit.replace(/(.*)/, API_ENDPOINT_PATTERN), (error, meta, body) => {
     try {
-      //processRedditJson(JSON.parse(body.toString()));
+      processRedditJson(JSON.parse(body.toString()));
     } catch(e) {
       printError(e.message);
       terminal.yellow('Don\'t panic. Will try again.' + '\n');
