@@ -5,6 +5,7 @@ var playSound = require('play-sound');
 var q = require('q');
 var terminalKit = require( 'terminal-kit' );
 
+const APP_NAME = 'Reddit Watch';
 const REFRESH_INTERVAL = 1000 * 60;
 const SEEN_POSTS_SIZE = 1000;
 const API_ENDPOINT_PATTERN = 'https://www.reddit.com/r/$1/new.json';
@@ -17,6 +18,8 @@ var player = playSound({});
 var reddit = process.argv[2];
 var terminal = terminalKit.terminal;
 
+terminal.windowTitle(APP_NAME);
+
 if (!reddit) {
   printError('You did not specify the subreddit name.');
   return;
@@ -28,7 +31,7 @@ setInterval(() => checkRedditForUpdates(), REFRESH_INTERVAL);
 function checkRedditForUpdates() {
   fetch.fetchUrl(reddit.replace(/(.*)/, API_ENDPOINT_PATTERN), (error, meta, body) => {
     try {
-      processRedditJson(JSON.parse(body.toString()));
+      //processRedditJson(JSON.parse(body.toString()));
     } catch(e) {
       printError(e.message);
       terminal.yellow('Don\'t panic. Will try again.' + '\n');
@@ -103,16 +106,9 @@ function fetchImage(url) {
 function printPost(post) {
   terminal.bold.green(_.unescape(post.title) + '\n');
   terminal.magenta(dateformat(post.created_utc * 1000, 'h:MM:ss TT'));
-  post.link_flair_text && terminal.cyan(' ' + post.link_flair_text);
-  terminal('\n');
-  terminal.yellow('Comments: ');
-  terminal.dim(PERMALINK_BASE + post.permalink + '\n');
-
-  if (!post.url.includes(post.permalink)) {
-    terminal.yellow('Link: ');
-    terminal.dim(post.url + '\n');
-  }
-
+  post.link_flair_text ? terminal.cyan(' ' + post.link_flair_text + '\n') : terminal('\n');
+  terminal.yellow('Comments: ').styleReset.dim(PERMALINK_BASE + post.permalink + '\n');
+  !post.url.includes(post.permalink) && terminal.yellow('Link: ').styleReset.dim(post.url + '\n');
   post.images.forEach(printImage);
   terminal(_.unescape(post.selftext) + '\n\n');
 }
@@ -127,6 +123,5 @@ function printImage(image) {
 }
 
 function printError(message) {
-  terminal.bold.red('Error: ');
-  terminal(message + '\n');
+  terminal.bold.red('Error: ').styleReset(message + '\n');
 }
